@@ -1,65 +1,386 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { Calculator, Save } from "lucide-react"
+
+interface GAVData {
+  minSalary: number
+  monthCount: number
+  weeklyHours: number
+  vacationDays: number
+}
+
+interface EmploymentData {
+  currentSalary: number
+  monthCount: number
+  weeklyHours: number
+  vacationDays: number
+}
+
+interface CalculationResults {
+  annualSalaryActual: number
+  annualSalaryGAV: number
+  absoluteDifference: number
+  percentageDifference: number
+  vacationWeeksDifference: number
+  vacationValueDifference: number
+  effectiveDifference: number
+}
+
+export default function SalaryComparison() {
+  const [gavData, setGAVData] = useState<GAVData>({
+    minSalary: 0,
+    monthCount: 13,
+    weeklyHours: 42.5,
+    vacationDays: 20,
+  })
+
+  const [employmentData, setEmploymentData] = useState<EmploymentData>({
+    currentSalary: 0,
+    monthCount: 14,
+    weeklyHours: 42.5,
+    vacationDays: 25,
+  })
+
+  const [results, setResults] = useState<CalculationResults | null>(null)
+
+  // Load GAV data from localStorage on mount
+  useEffect(() => {
+    const savedGAV = localStorage.getItem("gavData")
+    if (savedGAV) {
+      try {
+        setGAVData(JSON.parse(savedGAV))
+      } catch (e) {
+        console.error("Error loading GAV data:", e)
+      }
+    }
+  }, [])
+
+  const saveGAVData = () => {
+    localStorage.setItem("gavData", JSON.stringify(gavData))
+  }
+
+  const calculateComparison = () => {
+    // Calculate annual salaries
+    const annualSalaryActual = employmentData.currentSalary * employmentData.monthCount
+    const annualSalaryGAV = gavData.minSalary * gavData.monthCount
+
+    // Calculate salary difference
+    const absoluteDifference = annualSalaryActual - annualSalaryGAV
+    const percentageDifference = annualSalaryGAV > 0 ? (absoluteDifference / annualSalaryGAV) * 100 : 0
+
+    // Calculate vacation differences
+    const vacationDaysDiff = employmentData.vacationDays - gavData.vacationDays
+    const vacationWeeksDifference = vacationDaysDiff / 5
+
+    // Calculate value of vacation difference
+    // (Annual salary ÷ 52) × (vacation weeks difference)
+    const vacationValueDifference = (annualSalaryActual / 52) * vacationWeeksDifference
+
+    // If you have more vacation days, that's a benefit (+), so we ADD it
+    // If you have fewer vacation days, that's a disadvantage (-), so we ADD it (will be negative)
+    const effectiveDifference = absoluteDifference + vacationValueDifference
+
+    setResults({
+      annualSalaryActual,
+      annualSalaryGAV,
+      absoluteDifference,
+      percentageDifference,
+      vacationWeeksDifference,
+      vacationValueDifference,
+      effectiveDifference,
+    })
+  }
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("de-CH", {
+      style: "currency",
+      currency: "CHF",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value)
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 py-8 px-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 text-balance">Gehältervergleich</h1>
+          <p className="text-lg text-gray-600 dark:text-gray-300 text-balance">
+            Vergleich zwischen aktuellem Arbeitsvertrag und GAV-Mindestlohn
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          {/* Current Employment Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>IST-Daten (Aktueller Vertrag)</CardTitle>
+              <CardDescription>Ihre aktuellen Vertragsdaten (werden nicht gespeichert)</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="currentSalary">Monatslohn (Brutto, CHF)</Label>
+                <Input
+                  id="currentSalary"
+                  type="number"
+                  value={employmentData.currentSalary || ""}
+                  onChange={(e) =>
+                    setEmploymentData({
+                      ...employmentData,
+                      currentSalary: Number.parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  placeholder="z.B. 6500"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currentMonthCount">Anzahl Monatslöhne</Label>
+                <Input
+                  id="currentMonthCount"
+                  type="number"
+                  value={employmentData.monthCount || ""}
+                  onChange={(e) =>
+                    setEmploymentData({
+                      ...employmentData,
+                      monthCount: Number.parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  placeholder="z.B. 12, 13 oder 14"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currentWeeklyHours">Wöchentliche Arbeitszeit (Stunden)</Label>
+                <Input
+                  id="currentWeeklyHours"
+                  type="number"
+                  value={employmentData.weeklyHours || ""}
+                  onChange={(e) =>
+                    setEmploymentData({
+                      ...employmentData,
+                      weeklyHours: Number.parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  placeholder="z.B. 42"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currentVacationDays">Ferientage pro Jahr</Label>
+                <Input
+                  id="currentVacationDays"
+                  type="number"
+                  value={employmentData.vacationDays || ""}
+                  onChange={(e) =>
+                    setEmploymentData({
+                      ...employmentData,
+                      vacationDays: Number.parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  placeholder="z.B. 25"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* GAV Data Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>GAV-Mindestdaten</CardTitle>
+              <CardDescription>Mindeststandards gemäss GAV (z.B. proIT-GAV)</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="gavSalary">Mindest-Monatslohn (CHF)</Label>
+                <Input
+                  id="gavSalary"
+                  type="number"
+                  value={gavData.minSalary || ""}
+                  onChange={(e) =>
+                    setGAVData({
+                      ...gavData,
+                      minSalary: Number.parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  placeholder="z.B. 7000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gavMonthCount">Anzahl Monatslöhne lt. GAV</Label>
+                <Input
+                  id="gavMonthCount"
+                  type="number"
+                  value={gavData.monthCount || ""}
+                  onChange={(e) =>
+                    setGAVData({
+                      ...gavData,
+                      monthCount: Number.parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  placeholder="z.B. 13"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gavWeeklyHours">Wöchentliche Normalarbeitszeit (Stunden)</Label>
+                <Input
+                  id="gavWeeklyHours"
+                  type="number"
+                  value={gavData.weeklyHours || ""}
+                  onChange={(e) =>
+                    setGAVData({
+                      ...gavData,
+                      weeklyHours: Number.parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  placeholder="z.B. 42"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gavVacationDays">Ferientage lt. GAV</Label>
+                <Input
+                  id="gavVacationDays"
+                  type="number"
+                  value={gavData.vacationDays || ""}
+                  onChange={(e) =>
+                    setGAVData({
+                      ...gavData,
+                      vacationDays: Number.parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  placeholder="z.B. 25"
+                />
+              </div>
+              <Button onClick={saveGAVData} variant="outline" className="w-full bg-transparent">
+                <Save className="mr-2 h-4 w-4" />
+                GAV-Daten speichern
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-      </main>
+
+        {/* Calculate Button */}
+        <div className="flex justify-center mb-6">
+          <Button onClick={calculateComparison} size="lg" className="w-full md:w-auto">
+            <Calculator className="mr-2 h-5 w-5" />
+            Vergleich berechnen
+          </Button>
+        </div>
+
+        {/* Results Card */}
+        {results && (
+          <Card className="border-2 border-primary">
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <CardTitle className="text-2xl">Berechnungsergebnis</CardTitle>
+                  <CardDescription>Detaillierter Vergleich mit Ferienberücksichtigung</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Jahresbruttolohn IST</p>
+                    <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                      {formatCurrency(results.annualSalaryActual)}
+                    </p>
+                  </div>
+                  <div className="bg-indigo-50 dark:bg-indigo-950 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Jahresbruttolohn GAV</p>
+                    <p className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">
+                      {formatCurrency(results.annualSalaryGAV)}
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">Differenz (absolut)</span>
+                    <span
+                      className={`text-lg font-bold ${
+                        results.absoluteDifference >= 0
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-red-600 dark:text-red-400"
+                      }`}
+                    >
+                      {results.absoluteDifference >= 0 ? "+" : ""}
+                      {formatCurrency(results.absoluteDifference)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">Differenz (prozentual)</span>
+                    <span
+                      className={`text-lg font-bold ${
+                        results.percentageDifference >= 0
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-red-600 dark:text-red-400"
+                      }`}
+                    >
+                      {results.percentageDifference >= 0 ? "+" : ""}
+                      {results.percentageDifference.toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="bg-amber-50 dark:bg-amber-950 p-4 rounded-lg space-y-2">
+                  <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">Ferienberücksichtigung</h3>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-700 dark:text-gray-300">Ferienwochen-Differenz</span>
+                    <span className="font-medium">
+                      {results.vacationWeeksDifference >= 0 ? "+" : ""}
+                      {results.vacationWeeksDifference.toFixed(2)} Wochen
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-700 dark:text-gray-300">Wert der Ferien-Differenz</span>
+                    <span className="font-medium">
+                      {results.vacationValueDifference >= 0 ? "+" : ""}
+                      {formatCurrency(results.vacationValueDifference)}
+                    </span>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="bg-primary/10 p-6 rounded-lg">
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+                    <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Effektive Differenz (mit Ferienberücksichtigung)
+                    </span>
+                    <span
+                      className={`text-3xl font-bold ${
+                        results.effectiveDifference >= 0
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-red-600 dark:text-red-400"
+                      }`}
+                    >
+                      {results.effectiveDifference >= 0 ? "+" : ""}
+                      {formatCurrency(results.effectiveDifference)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Privacy Notice */}
+        <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+          <p>
+            🔒 <strong>Datenschutz:</strong> Ihre IST-Daten werden nicht gespeichert. Nur die GAV-Mindestdaten werden
+            lokal in Ihrem Browser gespeichert.
+          </p>
+        </div>
+      </div>
     </div>
-  );
+  )
 }
