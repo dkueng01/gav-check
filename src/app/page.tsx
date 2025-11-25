@@ -511,70 +511,90 @@ export default function SalaryComparison() {
                   {showDetails && (
                     <div className="mt-4 space-y-4 text-sm text-gray-600 dark:text-gray-300 animate-in slide-in-from-top-2 duration-200">
                       <div className="space-y-2">
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          1. Jahreslöhne
-                        </p>
+                        <p className="font-medium text-gray-900 dark:text-white">1. Jahreslöhne</p>
                         <ul className="list-disc pl-5 space-y-1">
                           <li>
-                            IST: {formatCurrency(employmentData.currentSalary)}{" "}
-                            × {employmentData.monthCount} ={" "}
+                            IST: {formatCurrency(employmentData.currentSalary)} × {employmentData.monthCount} ={" "}
                             {formatCurrency(results.annualSalaryActual)}
                           </li>
                           <li>
-                            GAV: {formatCurrency(gavData.minSalary)} ×{" "}
-                            {gavData.monthCount} ={" "}
+                            GAV: {formatCurrency(gavData.minSalary)} × {gavData.monthCount} ={" "}
                             {formatCurrency(results.annualSalaryGAV)}
                           </li>
                         </ul>
                       </div>
 
                       <div className="space-y-2">
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          2. Ferienwert-Berechnung
-                        </p>
-                        <p>
-                          Der Wert eines Ferienjahres basiert auf Ihrem
-                          aktuellen Jahreslohn geteilt durch 52 Wochen.
-                        </p>
+                        <p className="font-medium text-gray-900 dark:text-white">2. Stundenlohn-Berechnung</p>
+                        <p>Stundenlohn = Jahresgehalt ÷ (Wochenstunden × 52 Wochen)</p>
                         <ul className="list-disc pl-5 space-y-1">
                           <li>
-                            Wochenlohn:{" "}
-                            {formatCurrency(results.annualSalaryActual)} ÷ 52
+                            IST: {formatCurrency(results.annualSalaryActual)} ÷ ({employmentData.weeklyHours} × 52) ={" "}
+                            {formatCurrency(results.hourlyWageActual)}/h
                           </li>
                           <li>
-                            Differenz Ferienwochen: (
-                            {employmentData.vacationDays} -{" "}
-                            {gavData.vacationDays}) Tage ÷ 5 ={" "}
-                            {results.vacationWeeksDifference.toFixed(2)} Wochen
-                          </li>
-                          <li>
-                            <strong>Wert der Differenz:</strong> Wochenlohn ×{" "}
-                            {results.vacationWeeksDifference.toFixed(2)} Wochen
-                            = {formatCurrency(results.vacationValueDifference)}
+                            GAV: {formatCurrency(results.annualSalaryGAV)} ÷ ({gavData.weeklyHours} × 52) ={" "}
+                            {formatCurrency(results.hourlyWageGAV)}/h
                           </li>
                         </ul>
                       </div>
 
                       <div className="space-y-2">
                         <p className="font-medium text-gray-900 dark:text-white">
-                          3. Effektive Gesamtdifferenz
+                          3. Wert der Arbeitsstunden-Differenz
                         </p>
                         <p>
-                          Die Summe aus der reinen Lohndifferenz und dem
-                          monetären Wert der Feriendifferenz.
+                          Wenn Sie weniger arbeiten als der GAV vorschreibt, ist das ein Vorteil. Wenn Sie mehr
+                          arbeiten, ist das ein Nachteil.
                         </p>
                         <ul className="list-disc pl-5 space-y-1">
                           <li>
-                            Lohndifferenz:{" "}
-                            {formatCurrency(results.absoluteDifference)}
+                            Stunden-Differenz: {gavData.weeklyHours} - {employmentData.weeklyHours} ={" "}
+                            {(gavData.weeklyHours - employmentData.weeklyHours).toFixed(1)} Std./Woche
                           </li>
                           <li>
-                            + Ferienwert:{" "}
+                            Jahresstunden-Differenz: {(gavData.weeklyHours - employmentData.weeklyHours).toFixed(1)} ×
+                            52 = {((gavData.weeklyHours - employmentData.weeklyHours) * 52).toFixed(1)} Stunden
+                          </li>
+                          <li>
+                            <strong>Monetärer Wert:</strong>{" "}
+                            {((gavData.weeklyHours - employmentData.weeklyHours) * 52).toFixed(1)} Std. ×{" "}
+                            {formatCurrency(results.hourlyWageActual)}/h ={" "}
+                            {formatCurrency(results.hoursValueDifference)}
+                          </li>
+                        </ul>
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="font-medium text-gray-900 dark:text-white">4. Ferienwert-Berechnung</p>
+                        <p>
+                          Der Wert eines Ferienjahres basiert auf Ihrem aktuellen Jahreslohn geteilt durch 52 Wochen.
+                        </p>
+                        <ul className="list-disc pl-5 space-y-1">
+                          <li>Wochenlohn: {formatCurrency(results.annualSalaryActual)} ÷ 52</li>
+                          <li>
+                            Differenz Ferienwochen: ({employmentData.vacationDays} - {gavData.vacationDays}) Tage ÷ 5 ={" "}
+                            {results.vacationWeeksDifference.toFixed(2)} Wochen
+                          </li>
+                          <li>
+                            <strong>Wert der Differenz:</strong> Wochenlohn ×{" "}
+                            {results.vacationWeeksDifference.toFixed(2)} Wochen ={" "}
                             {formatCurrency(results.vacationValueDifference)}
                           </li>
-                          <li className="font-semibold pt-1">
-                            = {formatCurrency(results.effectiveDifference)}
-                          </li>
+                        </ul>
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="font-medium text-gray-900 dark:text-white">5. Effektive Gesamtdifferenz</p>
+                        <p>
+                          Die Summe aus der reinen Lohndifferenz, dem Wert der Arbeitsstunden-Differenz und dem Wert der
+                          Feriendifferenz.
+                        </p>
+                        <ul className="list-disc pl-5 space-y-1">
+                          <li>Lohndifferenz: {formatCurrency(results.absoluteDifference)}</li>
+                          <li>+ Arbeitsstunden-Wert: {formatCurrency(results.hoursValueDifference)}</li>
+                          <li>+ Ferienwert: {formatCurrency(results.vacationValueDifference)}</li>
+                          <li className="font-semibold pt-1">= {formatCurrency(results.effectiveDifference)}</li>
                         </ul>
                       </div>
                     </div>
