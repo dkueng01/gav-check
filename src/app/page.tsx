@@ -12,30 +12,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Calculator, ChevronDown, ChevronUp, Info, Save } from "lucide-react";
+import { Calculator, ChevronDown, ChevronUp, Info, MessageSquare, Save } from "lucide-react";
 
 interface GAVData {
-  minSalary: number;
-  monthCount: number;
-  weeklyHours: number;
-  vacationDays: number;
+  minSalary: number
+  monthCount: number
+  weeklyHours: number
+  vacationDays: number
 }
 
 interface EmploymentData {
-  currentSalary: number;
-  monthCount: number;
-  weeklyHours: number;
-  vacationDays: number;
+  currentSalary: number
+  monthCount: number
+  weeklyHours: number
+  vacationDays: number
 }
 
 interface CalculationResults {
-  annualSalaryActual: number;
-  annualSalaryGAV: number;
-  absoluteDifference: number;
-  percentageDifference: number;
-  vacationWeeksDifference: number;
-  vacationValueDifference: number;
-  effectiveDifference: number;
+  annualSalaryActual: number
+  annualSalaryGAV: number
+  absoluteDifference: number
+  percentageDifference: number
+  vacationWeeksDifference: number
+  vacationValueDifference: number
+  hourlyWageActual: number
+  hourlyWageGAV: number
+  hourlyWageDifference: number
+  hoursValueDifference: number
+  effectiveDifference: number
 }
 
 export default function SalaryComparison() {
@@ -74,27 +78,32 @@ export default function SalaryComparison() {
 
   const calculateComparison = () => {
     // Calculate annual salaries
-    const annualSalaryActual =
-      employmentData.currentSalary * employmentData.monthCount;
-    const annualSalaryGAV = gavData.minSalary * gavData.monthCount;
+    const annualSalaryActual = employmentData.currentSalary * employmentData.monthCount
+    const annualSalaryGAV = gavData.minSalary * gavData.monthCount
 
     // Calculate salary difference
-    const absoluteDifference = annualSalaryActual - annualSalaryGAV;
-    const percentageDifference =
-      annualSalaryGAV > 0 ? (absoluteDifference / annualSalaryGAV) * 100 : 0;
+    const absoluteDifference = annualSalaryActual - annualSalaryGAV
+    const percentageDifference = annualSalaryGAV > 0 ? (absoluteDifference / annualSalaryGAV) * 100 : 0
 
     // Calculate vacation differences
-    const vacationDaysDiff = employmentData.vacationDays - gavData.vacationDays;
-    const vacationWeeksDifference = vacationDaysDiff / 5;
+    const vacationDaysDiff = employmentData.vacationDays - gavData.vacationDays
+    const vacationWeeksDifference = vacationDaysDiff / 5
 
     // Calculate value of vacation difference
-    // (Annual salary ÷ 52) × (vacation weeks difference)
-    const vacationValueDifference =
-      (annualSalaryActual / 52) * vacationWeeksDifference;
+    const vacationValueDifference = (annualSalaryActual / 52) * vacationWeeksDifference
 
-    // If you have more vacation days, that's a benefit (+), so we ADD it
-    // If you have fewer vacation days, that's a disadvantage (-), so we ADD it (will be negative)
-    const effectiveDifference = absoluteDifference + vacationValueDifference;
+    const annualHoursActual = employmentData.weeklyHours * 52
+    const annualHoursGAV = gavData.weeklyHours * 52
+    const hourlyWageActual = annualHoursActual > 0 ? annualSalaryActual / annualHoursActual : 0
+    const hourlyWageGAV = annualHoursGAV > 0 ? annualSalaryGAV / annualHoursGAV : 0
+    const hourlyWageDifference = hourlyWageActual - hourlyWageGAV
+
+    // If you work MORE hours than GAV, that's a disadvantage (you give more time for the same pay)
+    // hoursValueDifference = (GAV hours - IST hours) × 52 × hourlyWageActual
+    const weeklyHoursDiff = gavData.weeklyHours - employmentData.weeklyHours
+    const hoursValueDifference = weeklyHoursDiff * 52 * hourlyWageActual
+
+    const effectiveDifference = absoluteDifference + vacationValueDifference + hoursValueDifference
 
     setResults({
       annualSalaryActual,
@@ -103,9 +112,13 @@ export default function SalaryComparison() {
       percentageDifference,
       vacationWeeksDifference,
       vacationValueDifference,
+      hourlyWageActual,
+      hourlyWageGAV,
+      hourlyWageDifference,
+      hoursValueDifference,
       effectiveDifference,
-    });
-  };
+    })
+  }
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("de-CH", {
@@ -120,9 +133,15 @@ export default function SalaryComparison() {
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 py-8 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 text-balance">
-            Gehältervergleich
-          </h1>
+          <div className="flex justify-end mb-4">
+            <Button variant="outline" size="sm" asChild className="gap-2 bg-transparent">
+              <a href="https://insigh.to/b/gav-check" target="_blank" rel="noopener noreferrer">
+                <MessageSquare className="h-4 w-4" />
+                Feedback / Bug melden
+              </a>
+            </Button>
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 text-balance">Gehältervergleich</h1>
           <p className="text-lg text-gray-600 dark:text-gray-300 text-balance">
             Vergleich zwischen aktuellem Arbeitsvertrag und GAV-Mindestlohn
           </p>
@@ -319,17 +338,13 @@ export default function SalaryComparison() {
               <div className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
-                      Jahresbruttolohn IST
-                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Jahresbruttolohn IST</p>
                     <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                       {formatCurrency(results.annualSalaryActual)}
                     </p>
                   </div>
                   <div className="bg-indigo-50 dark:bg-indigo-950 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
-                      Jahresbruttolohn GAV
-                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Jahresbruttolohn GAV</p>
                     <p className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">
                       {formatCurrency(results.annualSalaryGAV)}
                     </p>
@@ -340,9 +355,7 @@ export default function SalaryComparison() {
 
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">
-                      Differenz (absolut)
-                    </span>
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">Differenz (absolut)</span>
                     <span
                       className={`text-lg font-bold ${
                         results.absoluteDifference >= 0
@@ -355,9 +368,7 @@ export default function SalaryComparison() {
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">
-                      Differenz (prozentual)
-                    </span>
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">Differenz (prozentual)</span>
                     <span
                       className={`text-lg font-bold ${
                         results.percentageDifference >= 0
@@ -373,24 +384,84 @@ export default function SalaryComparison() {
 
                 <Separator />
 
-                <div className="bg-amber-50 dark:bg-amber-950 p-4 rounded-lg space-y-2">
-                  <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
-                    Ferienberücksichtigung
+                <div className="bg-cyan-50 dark:bg-cyan-950 p-4 rounded-lg space-y-2">
+                  <h3 className="font-semibold text-cyan-900 dark:text-cyan-100 mb-2">Stundenlohn-Vergleich</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Stundenlohn IST</p>
+                      <p className="text-lg font-bold text-cyan-700 dark:text-cyan-300">
+                        {formatCurrency(results.hourlyWageActual)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Stundenlohn GAV</p>
+                      <p className="text-lg font-bold text-cyan-700 dark:text-cyan-300">
+                        {formatCurrency(results.hourlyWageGAV)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-sm pt-2 border-t border-cyan-200 dark:border-cyan-800">
+                    <span className="text-gray-700 dark:text-gray-300">Stundenlohn-Differenz</span>
+                    <span
+                      className={`font-bold ${
+                        results.hourlyWageDifference >= 0
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-red-600 dark:text-red-400"
+                      }`}
+                    >
+                      {results.hourlyWageDifference >= 0 ? "+" : ""}
+                      {formatCurrency(results.hourlyWageDifference)}/h
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg space-y-2">
+                  <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">
+                    Arbeitsstunden-Berücksichtigung
                   </h3>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-700 dark:text-gray-300">
-                      Ferienwochen-Differenz
+                    <span className="text-gray-700 dark:text-gray-300">Wochenstunden-Differenz</span>
+                    <span className="font-medium">
+                      {gavData.weeklyHours - employmentData.weeklyHours >= 0 ? "+" : ""}
+                      {(gavData.weeklyHours - employmentData.weeklyHours).toFixed(1)} Std./Woche
                     </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-700 dark:text-gray-300">Monetärer Wert der Stunden-Differenz</span>
+                    <span
+                      className={`font-medium ${
+                        results.hoursValueDifference >= 0
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-red-600 dark:text-red-400"
+                      }`}
+                    >
+                      {results.hoursValueDifference >= 0 ? "+" : ""}
+                      {formatCurrency(results.hoursValueDifference)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 pt-1">
+                    Weniger Arbeitsstunden als GAV = Vorteil (+), mehr Arbeitsstunden = Nachteil (-)
+                  </p>
+                </div>
+
+                <div className="bg-amber-50 dark:bg-amber-950 p-4 rounded-lg space-y-2">
+                  <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">Ferienberücksichtigung</h3>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-700 dark:text-gray-300">Ferienwochen-Differenz</span>
                     <span className="font-medium">
                       {results.vacationWeeksDifference >= 0 ? "+" : ""}
                       {results.vacationWeeksDifference.toFixed(2)} Wochen
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-700 dark:text-gray-300">
-                      Wert der Ferien-Differenz
-                    </span>
-                    <span className="font-medium">
+                    <span className="text-gray-700 dark:text-gray-300">Wert der Ferien-Differenz</span>
+                    <span
+                      className={`font-medium ${
+                        results.vacationValueDifference >= 0
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-red-600 dark:text-red-400"
+                      }`}
+                    >
                       {results.vacationValueDifference >= 0 ? "+" : ""}
                       {formatCurrency(results.vacationValueDifference)}
                     </span>
@@ -402,7 +473,7 @@ export default function SalaryComparison() {
                 <div className="bg-primary/10 p-6 rounded-lg">
                   <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
                     <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Effektive Differenz (mit Ferienberücksichtigung)
+                      Effektive Gesamtdifferenz
                     </span>
                     <span
                       className={`text-3xl font-bold ${
@@ -415,6 +486,9 @@ export default function SalaryComparison() {
                       {formatCurrency(results.effectiveDifference)}
                     </span>
                   </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    Inkl. Ferien- und Arbeitszeitberücksichtigung
+                  </p>
                 </div>
 
                 <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50">
